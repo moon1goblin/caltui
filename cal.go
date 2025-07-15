@@ -1,10 +1,22 @@
 package main
 
 import (
+	"log"
+	"strconv"
+
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	lg "github.com/charmbracelet/lipgloss"
 )
+
+const calwidth uint = 7
+const calheight uint = 5
+
+type daycell struct {
+	date uint
+	month string
+	year uint
+	// also data about events here
+}
 
 // lipgloss styles 
 // -------------------------------------------
@@ -16,7 +28,7 @@ var dayCellNormalModelStyle = lg.NewStyle().
 
 var dayCellFocusedModelStyle = lg.NewStyle().
 		Inherit(dayCellNormalModelStyle).
-		BorderForeground(lipgloss.Color("69"))
+		BorderForeground(lg.Color("69"))
 
 // ---------------------------------------------
 
@@ -24,8 +36,17 @@ var dayCellFocusedModelStyle = lg.NewStyle().
 // ---------------------------------------------
 
 type model struct {
-	daycellcount uint
-	focused_day uint
+	focused_day_x uint
+	focused_day_y uint
+	daycells [calheight*calwidth]daycell
+}
+
+func createModel() *model {
+	m := model{}
+	for index := range len(m.daycells) {
+		m.daycells[index].date = uint(index)
+	}
+	return &m
 }
 
 func (m model) Init() tea.Cmd {
@@ -39,12 +60,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "ctrl+c":
 					return m, tea.Quit
 				case "l":
-					if m.focused_day < m.daycellcount - 1 {
-						m.focused_day++
+					if m.focused_day_x < calwidth - 1 {
+						m.focused_day_x++
 					}
 				case "h":
-					if m.focused_day > 0 {
-						m.focused_day--
+					if m.focused_day_x > 0 {
+						m.focused_day_x--
+					}
+				case "j":
+					if m.focused_day_y < calheight - 1 {
+						m.focused_day_y++
+					}
+				case "k":
+					if m.focused_day_y > 0 {
+						m.focused_day_y--
 					}
 		}
 	}
@@ -52,22 +81,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	days := make([]string, m.daycellcount)
-	for index := range(m.daycellcount) {
-		if index == m.focused_day {
-			days[index] = dayCellFocusedModelStyle.Render()
-		} else {
-			days[index] = dayCellNormalModelStyle.Render()
+	month := make([]string, calheight)
+	week := make([]string, calwidth)
+
+	var indtotal uint = 0
+	for cury := range calheight {
+		for curx := range calwidth {
+			if curdate := m.daycells[indtotal].date; 
+				cury == m.focused_day_y && curx == m.focused_day_x {
+				week[curx] = dayCellFocusedModelStyle.Render(strconv.Itoa(int(curdate)))
+			} else {
+				week[curx] = dayCellNormalModelStyle.Render(strconv.Itoa(int(curdate)))
+			}
+			indtotal++
+			log.Println("heyyyyy babe")
 		}
+		month[cury] = lg.JoinHorizontal(lg.Left, week...)
 	}
-	return lg.JoinHorizontal(lg.Left, days...)
+	return lg.JoinVertical(lg.Left, month...)
 }
 
 // ---------------------------------------------
 
 func main() {
-	program := tea.NewProgram(model{daycellcount: 7})
-	if _, err := program.Run(); err != nil {
-		// idk how to handle errors lmao
+	file, err := tea.LogToFile("debug.log", "debug")
+	if err != nil {
+		log.Fatalf("err: %v", err)
+	}
+	defer file.Close()
+
+	if _, err := tea.NewProgram(*createModel()).Run(); err != nil {
+		log.Fatal(err)
 	}
 }
