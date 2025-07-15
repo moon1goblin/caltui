@@ -1,12 +1,14 @@
 package main
 
 import (
-	"log"
 	"strconv"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	lg "github.com/charmbracelet/lipgloss"
 )
+
+// -------------------------------------------
 
 const calwidth uint = 7
 const calheight uint = 5
@@ -18,7 +20,6 @@ type daycell struct {
 	// also data about events here
 }
 
-// lipgloss styles 
 // -------------------------------------------
 
 var dayCellNormalModelStyle = lg.NewStyle().
@@ -30,22 +31,41 @@ var dayCellFocusedModelStyle = lg.NewStyle().
 		Inherit(dayCellNormalModelStyle).
 		BorderForeground(lg.Color("69"))
 
-// ---------------------------------------------
+var dayCellTodayModelStyle = lg.NewStyle().
+		Inherit(dayCellNormalModelStyle).
+		BorderForeground(lg.Color("9"))
 
-// bubbletea shit
 // ---------------------------------------------
 
 type model struct {
+	cur_time time.Time
+	cur_weekday uint // monday 0 sunday 6
 	focused_day_x uint
 	focused_day_y uint
-	daycells [calheight*calwidth]daycell
+	upper_left_day time.Time
+	loaded_daycells []daycell
 }
+
+// // [begintime, endtime]
+// func loadDays(begintime time.Time, endtime time.Time) tea.Cmd {
+// 	return func() tea.Msg {
+// 		// ask the server for that if theres a connection
+// 		// if not ask sqlite
+// 		// i am not doing that shit rn though
+// 	}
+// }
 
 func createModel() *model {
 	m := model{}
-	for index := range len(m.daycells) {
-		m.daycells[index].date = uint(index)
-	}
+	m.cur_time = time.Now()
+	m.cur_weekday = uint((int(m.cur_time.Weekday()) + 6) % 7)
+	m.upper_left_day = m.cur_time.AddDate(0, 0, - (7 + int(m.cur_weekday)))
+	m.focused_day_x = m.cur_weekday
+	m.focused_day_y = 1
+
+	// // load days 2 month before and after, if scroll far enough ask for more
+	// for i := range calheight * calwidth {
+	// }
 	return &m
 }
 
@@ -68,11 +88,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.focused_day_x--
 					}
 				case "j":
-					if m.focused_day_y < calheight - 1 {
+					if m.focused_day_y == calheight - 1 {
+						m.upper_left_day = m.upper_left_day.AddDate(0, 0, 7)
+					} else if m.focused_day_y < calheight - 1 {
 						m.focused_day_y++
 					}
 				case "k":
-					if m.focused_day_y > 0 {
+					if m.focused_day_y == 0 {
+						m.upper_left_day = m.upper_left_day.AddDate(0, 0, -7)
+					} else if m.focused_day_y > 0 {
 						m.focused_day_y--
 					}
 		}
@@ -84,17 +108,18 @@ func (m model) View() string {
 	month := make([]string, calheight)
 	week := make([]string, calwidth)
 
-	var indtotal uint = 0
+	cur_time := m.upper_left_day
 	for cury := range calheight {
 		for curx := range calwidth {
-			if curdate := m.daycells[indtotal].date; 
-				cury == m.focused_day_y && curx == m.focused_day_x {
-				week[curx] = dayCellFocusedModelStyle.Render(strconv.Itoa(int(curdate)))
+			if m.focused_day_x == curx && m.focused_day_y == cury {
+				week[curx] = dayCellFocusedModelStyle.Render(strconv.Itoa(cur_time.Day()))
+					// strconv.Itoa(cur_time.Day())
+			} else if cur_time.Equal(m.cur_time) {
+				week[curx] = dayCellTodayModelStyle.Render(strconv.Itoa(cur_time.Day()))
 			} else {
-				week[curx] = dayCellNormalModelStyle.Render(strconv.Itoa(int(curdate)))
+				week[curx] = dayCellNormalModelStyle.Render(strconv.Itoa(cur_time.Day()))
 			}
-			indtotal++
-			log.Println("heyyyyy babe")
+			cur_time = cur_time.AddDate(0, 0, 1)
 		}
 		month[cury] = lg.JoinHorizontal(lg.Left, week...)
 	}
@@ -104,13 +129,13 @@ func (m model) View() string {
 // ---------------------------------------------
 
 func main() {
-	file, err := tea.LogToFile("debug.log", "debug")
-	if err != nil {
-		log.Fatalf("err: %v", err)
-	}
-	defer file.Close()
+	// file, err := tea.LogToFile("debug.log", "debug")
+	// if err != nil {
+	// 	log.Fatalf("err: %v", err)
+	// }
+	// defer file.Close()
 
 	if _, err := tea.NewProgram(*createModel()).Run(); err != nil {
-		log.Fatal(err)
+		// log.Fatal(err)
 	}
 }
