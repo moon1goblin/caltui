@@ -1,4 +1,4 @@
-module caltui
+module cal
 
 go 1.24.4
 
