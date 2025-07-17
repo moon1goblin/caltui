@@ -1,26 +1,34 @@
 package cal
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	tea "github.com/charmbracelet/bubbletea"
+	lg "github.com/charmbracelet/lipgloss"
+)
 
 type DayViewModel struct {
+	parent_model_ptr *ParentModel
 }
 
-// func (m dayViewModel) Init() tea.Cmd {
-// 	return nil
-// }
+var dayviewstyle = lg.NewStyle().
+		Border(lg.RoundedBorder()).
+		Padding()
 
-func (m DayViewModel) ViewDayView() string {
-	return "this is the day view :_)"
+func (m *DayViewModel) Init() tea.Cmd {
+	return nil
 }
 
-func (m DayViewModel) UpdateDayView(parentmodel *ParentModel, msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *DayViewModel) View() string {
+	content := "this is the day view :_"
+	return dayviewstyle.Render(content)
+}
+
+func (m *DayViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch msg.String() {
-				case "ctrl+c", "q":
-				case "esc", "ctrl+[":
-					parentmodel.Is_in_day_view = false
-			}
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "esc", "ctrl+[":
+			m.parent_model_ptr.Is_in_day_view = false
+		}
 	}
-	return parentmodel, nil
+	return m, nil
 }
