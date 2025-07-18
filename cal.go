@@ -1,21 +1,29 @@
 package cal
 
 import (
-	"log"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	overlay "github.com/rmhubbert/bubbletea-overlay"
 )
 
-const calwidth_g uint = 7
-const calheight_g uint = 4
+// cal dimensions
+const dimension_calwidth_g uint = 7
+const dimension_calheight_g uint = 4
+
+// TODO: change dim with terminal size
 
 type ParentModel struct {
 	// TODO: make this an enum
-	Is_in_day_view bool
-	dayview tea.Model
-	monthview tea.Model
+	is_in_day_view bool
+	dayview *DayViewModel
+	monthview *MonthViewModel
 	overlay tea.Model
+
+	cur_time time.Time
+	// monday 0 sunday 6
+	cur_weekday uint
+	focused_day_time time.Time
 }
 
 // // [begintime, endtime]
@@ -29,7 +37,12 @@ type ParentModel struct {
 
 func CreateParentModel() *ParentModel {
 	m := ParentModel{}
-	m.Is_in_day_view = true
+	m.is_in_day_view = false
+
+	m.cur_time = time.Now()
+	m.focused_day_time = m.cur_time
+	// times weekdays start from sunday, eww
+	m.cur_weekday = uint((int(m.cur_time.Weekday()) + 6) % 7)
 
 	// WTF: & or no &
 	m.dayview = &DayViewModel{&m}
@@ -62,19 +75,21 @@ func (m *ParentModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 
-	switch m.Is_in_day_view {
+	switch m.is_in_day_view {
 	case true:
-		m.dayview, cmd = m.dayview.Update(msg)
+		// ok fuck this
+		// ignoring tea.Model return because dayview.Update() is interfaced by pointer
+		_, cmd = m.dayview.Update(msg)
 	case false:
-		m.monthview, cmd = m.monthview.Update(msg)
+		_, cmd = m.monthview.Update(msg)
+		// m.monthview = mod
 	}
-	log.Println(m.Is_in_day_view)
 
 	return m, cmd
 }
 
 func (m *ParentModel) View() string {
-	if m.Is_in_day_view {
+	if m.is_in_day_view {
 		return m.overlay.View()
 	} else {
 		return m.monthview.View()
