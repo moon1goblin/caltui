@@ -35,7 +35,7 @@ func (m *DayViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.parent_model_ptr.ChangeFocusedDay(-1)
 		case "l":
 			m.parent_model_ptr.ChangeFocusedDay(1)
-		case "esc", "ctrl+[":
+		case "esc", "enter":
 			m.parent_model_ptr.is_in_day_view = false
 		}
 	}

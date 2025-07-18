@@ -14,13 +14,14 @@ func (m *ParentModel) CalcAndSetFocusedDayXY() {
 	m.monthview.focused_day_y = days_from_upper_left / 7
 }
 
+// only +-1, +-7 please please, i dont wanna fuck with this anymore
 func (m *ParentModel) ChangeFocusedDay(increment int) {
 	m.focused_day_time = m.focused_day_time.AddDate(0, 0, increment)
 
-	// scrolling
-	if increment < 0 && m.monthview.focused_day_y == 0 {
+	// scrolling atrocity
+	if increment < -1 && m.monthview.focused_day_y == 0 {
 		m.monthview.upper_left_day = m.monthview.upper_left_day.AddDate(0, 0, -7)
-	} else if increment > 0 && m.monthview.focused_day_y == dimension_calheight_g - 1 {
+	} else if increment > 1 && m.monthview.focused_day_y == dimension_calheight_g - 1 {
 		m.monthview.upper_left_day = m.monthview.upper_left_day.AddDate(0, 0, 7)
 	}
 
